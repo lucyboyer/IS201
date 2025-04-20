@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Snake Game</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f0f0;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+    }
+
+    h1 {
+      margin-bottom: 5px;
+      font-size: 2.5rem;
+      color: #2c3e50;
+    }
+
+    canvas {
+      border: 3px solid #2ecc71;
+      background-color: #ffffff;
+      box-shadow: 0 0 10px #ccc;
+    }
+
+    #score, #highScore {
+      margin-top: 5px;
+      font-size: 1.2rem;
+    }
+
+    a {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      color: #2980b9;
+      text-decoration: none;
+      font-size: 1rem;
+    }
+  </style>
+</head>
+<body>
+  <a href="scratch.html">← Back to Mexico Page</a>
+  <h1>Snake Game</h1>
+  <canvas id="game" width="400" height="400"></canvas>
+  <div id="score">Score: 0</div>
+  <div id="highScore">High Score: 0</div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const gridSize = 20;
+    const tileCount = canvas.width / gridSize;
+
+    let snake = [{ x: 10, y: 10 }];
+    let food = { x: 15, y: 15, type: "apple" };
+    let dx = 0;
+    let dy = 0;
+    let score = 0;
+    let highScore = localStorage.getItem("snakeHighScore") || 0;
+    let started = false;
+    let frame = 0;
+
+    const fruitTypes = ["apple", "banana", "grape", "strawberry"];
+
+    document.getElementById("highScore").textContent = "High Score: " + highScore;
+
+    function gameLoop() {
+      requestAnimationFrame(gameLoop);
+      if (++frame % 6 !== 0) return;
+      if (!started) return;
+
+      const head = { x: snake[0].x + dx, y: snake[0].y + dy };
+
+      if (
+        head.x < 0 || head.x >= tileCount ||
+        head.y < 0 || head.y >= tileCount ||
+        snake.some(s => s.x === head.x && s.y === head.y)
+      ) {
+        if (score > highScore) {
+          highScore = score;
+          localStorage.setItem("snakeHighScore", highScore);
+          document.getElementById("highScore").textContent = "High Score: " + highScore;
+          alert("🎉 New High Score! Your score: " + score);
+        } else {
+          alert("Game Over! Your score: " + score);
+        }
+        resetGame();
+        return;
+      }
+
+      snake.unshift(head);
+
+      if (head.x === food.x && head.y === food.y) {
+        score++;
+        document.getElementById("score").textContent = "Score: " + score;
+        placeFood();
+      } else {
+        snake.pop();
+      }
+
+      drawGame();
+    }
+
+    function drawGame() {
+      for (let y = 0; y < tileCount; y++) {
+        for (let x = 0; x < tileCount; x++) {
+          ctx.fillStyle = (x + y) % 2 === 0 ? "#a8d5a2" : "#c0e6b5";
+          ctx.fillRect(x * gridSize, y * gridSize, gridSize, gridSize);
+        }
+      }
+
+      snake.forEach((part, index) => {
+        const scaleShade = index % 2 === 0 ? "#2ecc71" : "#27ae60";
+        ctx.fillStyle = scaleShade;
+        ctx.strokeStyle = "#14532d";
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
+        ctx.strokeRect(part.x * gridSize, part.y * gridSize, gridSize, gridSize);
+      });
+
+      const head = snake[0];
+      const centerX = head.x * gridSize;
+      const centerY = head.y * gridSize;
+      ctx.fillStyle = "#000";
+      ctx.beginPath();
+      ctx.arc(centerX + 5, centerY + 5, 2, 0, Math.PI * 2);
+      ctx.arc(centerX + 15, centerY + 5, 2, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = "red";
+      let tongueX = centerX + 8;
+      let tongueY = centerY + 8;
+      if (dx === 1) tongueX += 10;
+      if (dx === -1) tongueX -= 6;
+      if (dy === 1) tongueY += 10;
+      if (dy === -1) tongueY -= 6;
+      if (dx !== 0 || dy !== 0) {
+        ctx.beginPath();
+        ctx.arc(tongueX, tongueY, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      const fx = food.x * gridSize;
+      const fy = food.y * gridSize;
+      const size = gridSize;
+
+      switch (food.type) {
+        case "apple":
+          ctx.fillStyle = "#e74c3c";
+          ctx.beginPath();
+          ctx.arc(fx + size / 2, fy + size / 2, size / 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#ffffff88";
+          ctx.beginPath();
+          ctx.arc(fx + size / 2 - 3, fy + size / 2 - 4, 3, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = "#8e5a2a";
+          ctx.fillRect(fx + size / 2 - 1, fy + 3, 2, 5);
+          break;
+
+        case "banana":
+          ctx.fillStyle = "#f1c40f";
+          ctx.beginPath();
+          ctx.arc(fx + size / 2, fy + size / 2, size / 3, 0.3 * Math.PI, 1.3 * Math.PI);
+          ctx.lineTo(fx + size / 2, fy + size / 2);
+          ctx.fill();
+          ctx.fillStyle = "#8e5a2a";
+          ctx.beginPath();
+          ctx.arc(fx + size / 2 + 6, fy + size / 2 - 4, 2, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+
+        case "grape":
+          ctx.fillStyle = "#8e44ad";
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 2; j++) {
+              ctx.beginPath();
+              ctx.arc(fx + 6 + i * 5, fy + 6 + j * 5, 3, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          ctx.fillStyle = "#2ecc71";
+          ctx.beginPath();
+          ctx.arc(fx + 10, fy + 3, 3, 0, Math.PI * 2);
+          ctx.fill();
+          break;
+
+        case "strawberry":
+          ctx.fillStyle = "#ff4d6d";
+          ctx.beginPath();
+          ctx.moveTo(fx + size / 2, fy + 4);
+          ctx.bezierCurveTo(fx + size - 4, fy + 4, fx + size - 4, fy + size - 4, fx + size / 2, fy + size - 2);
+          ctx.bezierCurveTo(fx + 4, fy + size - 4, fx + 4, fy + 4, fx + size / 2, fy + 4);
+          ctx.fill();
+          ctx.fillStyle = "#fff59d";
+          for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.arc(fx + 6 + i * 3, fy + 10 + (i % 2) * 3, 1, 0, Math.PI * 2);
+            ctx.fill();
+          }
+          ctx.fillStyle = "#2ecc71";
+          for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(fx + size / 2, fy + 4);
+            ctx.lineTo(fx + size / 2 + (i - 1) * 5, fy + 0);
+            ctx.lineTo(fx + size / 2 + (i - 1) * 3, fy + 4);
+            ctx.fill();
+          }
+          break;
+      }
+    }
+
+    function placeFood() {
+      food = {
+        x: Math.floor(Math.random() * tileCount),
+        y: Math.floor(Math.random() * tileCount),
+        type: fruitTypes[Math.floor(Math.random() * fruitTypes.length)]
+      };
+    }
+
+    function resetGame() {
+      snake = [{ x: 10, y: 10 }];
+      dx = 0;
+      dy = 0;
+      score = 0;
+      document.getElementById("score").textContent = "Score: 0";
+      started = false;
+      placeFood();
+    }
+
+    document.addEventListener("keydown", e => {
+      started = true;
+      switch (e.key) {
+        case "ArrowUp": if (dy === 0) { dx = 0; dy = -1; } break;
+        case "ArrowDown": if (dy === 0) { dx = 0; dy = 1; } break;
+        case "ArrowLeft": if (dx === 0) { dx = -1; dy = 0; } break;
+        case "ArrowRight": if (dx === 0) { dx = 1; dy = 0; } break;
+      }
+    });
+
+    resetGame();
+    drawGame();
+    gameLoop();
+  </script>
+</body>
+</html>
